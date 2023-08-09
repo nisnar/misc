@@ -2,3 +2,4 @@
 *.so
 *.class
 *.jar
+.cache
