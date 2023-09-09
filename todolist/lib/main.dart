@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
-//implementing CRUD functionality:
-//Create, Read, Update, and Delete
-//create a todo, listed it on the UI, updated its status, and deleted it
+//built basic features using this tutorial:
+//https://www.freecodecamp.org/news/learn-state-management-in-flutter/
 
 //should have these features:
 //1. each item has a title and description (need to add description feature)
 //2. items should be able to be dragged around for priority
-//3. items should be remembered on device storage
-//4. items should be able to be deleted (need to fix name vs id bug)
+//3. items should be remembered on device storage (right now, they get deleted if the app closes and is reopened)
+//4. items should be able to be deleted (need to fix bug - if items have same name and one is deleted, both are deleted)
 
 
 void main() {
