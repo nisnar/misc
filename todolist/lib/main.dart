@@ -1,14 +1,20 @@
+import 'dart:html';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+var uuid = Uuid();
 
 //built basic features using this tutorial:
 //https://www.freecodecamp.org/news/learn-state-management-in-flutter/
 
-//should have these features:
-//1. each item has a title and description (need to add description feature)
-//2. items should be able to be dragged around for priority
-//3. items should be remembered on device storage (right now, they get deleted if the app closes and is reopened)
-//4. items should be able to be deleted (need to fix bug - if items have same name and one is deleted, both are deleted)
-
+//added features:
+//1. adding UUID to fix bug when deleting todos with the same name
+//2. added description to each todo item (need to edit alert dialog column width)
+//3. working on drag/drop
+//4. added save to device storage
+//5. need to add edit feature
 
 void main() {
   runApp(const TodoApp());
@@ -41,15 +47,46 @@ class TodoList extends StatefulWidget {
 
 class _TodoListState extends State<TodoList> {
   final List<Todo> _todos = <Todo>[];
-  final TextEditingController _textFieldController = TextEditingController();
+  final TextEditingController _textFieldController1 = TextEditingController();
+  final TextEditingController _textFieldController2 = TextEditingController();
+  late final SharedPreferences prefs;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodos();
+  }
+
+  Future<void> _loadTodos() async {
+    prefs = await SharedPreferences.getInstance();
+    for (var key in prefs.getKeys()) {
+      List<String> newtododata = prefs.getStringList(key)!;
+      Todo newtodo = Todo(
+          id: key,
+          name: newtododata.elementAt(0),
+          description: newtododata.elementAt(1),
+          completed: bool.parse(newtododata.elementAt(2)));
+      setState(() {
+        _todos.add(newtodo);
+      });
+    }
+  }
 
   //for adding new todo list items.
   //displays text field for name and completed is initially false
   void _addTodoItem(String name, String description) {
+    Todo newtodo = Todo(
+        id: uuid.v4(), name: name, description: description, completed: false);
     setState(() {
-      _todos.add(Todo(name: name, description: description, completed: false));
+      _todos.add(newtodo);
     });
-    _textFieldController.clear();
+    _textFieldController1.clear();
+    _textFieldController2.clear();
+    prefs.setStringList(newtodo.id, <String>[
+      newtodo.name,
+      newtodo.description,
+      newtodo.completed.toString()
+    ]);
   }
 
   //changes completion status. will call this onclick checkbox.
@@ -57,19 +94,35 @@ class _TodoListState extends State<TodoList> {
     setState(() {
       todo.completed = !todo.completed;
     });
+    prefs.setStringList(todo.id,
+        <String>[todo.name, todo.description, todo.completed.toString()]);
+  }
+
+  //edit todo item
+  void _editTodo(Todo todo) {
+    //i want to open an alert dialog to edit the title/description.
   }
 
   //deletes todo item by
   //accepting a todo, comparing it with the list, and identifying the match
   void _deleteTodo(Todo todo) {
     setState(() {
-      _todos.removeWhere((element) => element.name == todo.name);
+      _todos.removeWhere((element) => element.id == todo.id);
+    });
+    prefs.remove(todo.id);
+  }
+
+  void _moveTodo(Todo dragged, Todo droppedOn) {
+    setState(() {
+      _todos.removeWhere((element) => element.id == dragged.id);
+      var i = _todos.indexWhere((element) => element.id == droppedOn.id);
+      _todos.insert(i, dragged);
     });
   }
 
   //Future is used for async computation:
   //meaning it waits for user to tap Add or Cancel button
-  Future<void> _displayDialog() async {
+  Future<void> _displayDialog(String dialogType) async {
     return showDialog<void>(
       context: context,
       //barrierDismissible property is false, so
@@ -77,14 +130,23 @@ class _TodoListState extends State<TodoList> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Add a to-do item'),
-          content: TextField(
-              //renders text input field for title
-              controller: _textFieldController,
-              decoration:
-                  const InputDecoration(hintText: 'Type your to-do title'),
-              autofocus: true,
-            ),
+          title: Text('$dialogType your to-do item'),
+          content: Column(
+            children: <Widget>[
+              TextField(
+                //renders text input field for title
+                controller: _textFieldController1,
+                decoration: const InputDecoration(hintText: 'title'),
+                autofocus: true,
+              ),
+              TextField(
+                //renders text input field for description
+                controller: _textFieldController2,
+                decoration: const InputDecoration(hintText: 'description'),
+                autofocus: true,
+              ),
+            ],
+          ),
           actions: <Widget>[
             //renders two buttons: add and cancel
             OutlinedButton(
@@ -96,6 +158,8 @@ class _TodoListState extends State<TodoList> {
               onPressed: () {
                 //on press, cancel will close the dialog
                 Navigator.of(context).pop();
+                _textFieldController1.clear();
+                _textFieldController2.clear();
               },
               child: const Text('Cancel'),
             ),
@@ -108,9 +172,10 @@ class _TodoListState extends State<TodoList> {
               onPressed: () {
                 //on press, add will close the dialog and add the to-do item
                 Navigator.of(context).pop();
-                _addTodoItem(_textFieldController.text, _textFieldController.text);
+                _addTodoItem(
+                    _textFieldController1.text, _textFieldController2.text);
               },
-              child: const Text('Add'),
+              child: Text(dialogType),
             ),
           ],
         );
@@ -128,14 +193,28 @@ class _TodoListState extends State<TodoList> {
       //and passes each todo to the TodoItem widget
       body: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
-          children: _todos.map((Todo todo) {
-            return TodoItem(
-                todo: todo,
-                onTodoChanged: _handleTodoChange,
-                removeTodo: _deleteTodo);
+          children: _todos.map((Todo droppedOn) {
+            return DragTarget<Todo>(builder: (context, a, b) {
+              return LongPressDraggable<Todo>(
+                data: droppedOn,
+                dragAnchorStrategy: pointerDragAnchorStrategy,
+                feedback: TodoItem(
+                    todo: droppedOn,
+                    onTodoChanged: _handleTodoChange,
+                    editTodo: _editTodo,
+                    removeTodo: _deleteTodo),
+                child: TodoItem(
+                    todo: droppedOn,
+                    onTodoChanged: _handleTodoChange,
+                    editTodo: _editTodo,
+                    removeTodo: _deleteTodo),
+              );
+            }, onAccept: (todo) {
+              _moveTodo(todo, droppedOn);
+            });
           }).toList()),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _displayDialog(),
+        onPressed: () => _displayDialog('Add'),
         tooltip: 'Add a to-do item',
         child: const Icon(Icons.add),
       ),
@@ -144,23 +223,32 @@ class _TodoListState extends State<TodoList> {
 }
 
 class Todo {
-  Todo({required this.name, required this.description, required this.completed});
+  Todo(
+      {required this.id,
+      required this.name,
+      required this.description,
+      required this.completed});
+  String id;
   String name;
   String description;
   bool completed;
 }
 
 //class to display to-do items in list
+//wrapped in longpressdraggable
+
 class TodoItem extends StatelessWidget {
   //constructor requires a Todo and the method onTodoChanged to be passed
   TodoItem(
       {required this.todo,
       required this.onTodoChanged,
+      required this.editTodo,
       required this.removeTodo})
       : super(key: ObjectKey(todo));
 
   final Todo todo;
   final void Function(Todo todo) onTodoChanged;
+  final void Function(Todo todo) editTodo;
   final void Function(Todo todo) removeTodo;
 
   TextStyle? _getTextStyle(bool checked) {
@@ -180,8 +268,8 @@ class TodoItem extends StatelessWidget {
         onTodoChanged(todo);
       },
       leading: Checkbox(
-        checkColor: Colors.greenAccent,
-        activeColor: Colors.black12,
+        checkColor: Colors.black,
+        activeColor: Colors.lightGreen,
         value: todo.completed,
         onChanged: (value) {
           onTodoChanged(todo);
@@ -191,7 +279,28 @@ class TodoItem extends StatelessWidget {
       title: Row(children: <Widget>[
         Expanded(
           //if completed, display as strikethrough
-          child: Text(todo.name, style: _getTextStyle(todo.completed)),
+          child: RichText(
+            text: TextSpan(
+                style: _getTextStyle(todo.completed),
+                children: <TextSpan>[
+                  TextSpan(
+                      text: todo.name,
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  TextSpan(text: ' ${todo.description}')
+                ]),
+          ),
+        ),
+        IconButton(
+          //edit icon
+          iconSize: 30,
+          icon: const Icon(
+            Icons.edit,
+            color: Colors.blue,
+          ),
+          alignment: Alignment.centerRight,
+          onPressed: () {
+            editTodo(todo);
+          },
         ),
         IconButton(
           //delete icon
