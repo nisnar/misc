@@ -131,21 +131,32 @@ class _TodoListState extends State<TodoList> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('$dialogType your to-do item'),
-          content: Column(
+          content: 
+          Container(
+            height: MediaQuery.of(context).size.height * 0.3,
+            width: MediaQuery.of(context).size.width * 0.5,
+            child: Column(
             children: <Widget>[
               TextField(
+                keyboardType: TextInputType.multiline,
+                minLines: 1,
+                maxLines: 5,
                 //renders text input field for title
                 controller: _textFieldController1,
                 decoration: const InputDecoration(hintText: 'title'),
                 autofocus: true,
               ),
               TextField(
+                keyboardType: TextInputType.multiline,
+                minLines: 1,
+                maxLines: 5,
                 //renders text input field for description
                 controller: _textFieldController2,
                 decoration: const InputDecoration(hintText: 'description'),
                 autofocus: true,
               ),
             ],
+          ),
           ),
           actions: <Widget>[
             //renders two buttons: add and cancel
