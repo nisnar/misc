@@ -209,11 +209,9 @@ class _TodoListState extends State<TodoList> {
               return LongPressDraggable<Todo>(
                 data: droppedOn,
                 dragAnchorStrategy: pointerDragAnchorStrategy,
-                feedback: TodoItem(
-                    todo: droppedOn,
-                    onTodoChanged: _handleTodoChange,
-                    editTodo: _editTodo,
-                    removeTodo: _deleteTodo),
+                feedback: RichText(text: TextSpan(
+                  text: "dragging -> ${droppedOn.name}: ${droppedOn.description}"
+                )),
                 child: TodoItem(
                     todo: droppedOn,
                     onTodoChanged: _handleTodoChange,
