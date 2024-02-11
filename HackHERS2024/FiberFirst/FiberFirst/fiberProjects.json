@@ -1,0 +1,46 @@
+[
+    {
+        "id": 0,
+        "name": "g-square scarf",
+        "patternLink": "url whatever",
+        "description": "hiiiii",
+        "isCrochet": true,
+        "timerInSeconds": 111,
+        "numRows": 1,
+        "numStitches": 11,
+        "isFavorite": true
+    },
+    {
+        "id": 1,
+        "name": "sweater vest",
+        "patternLink": "url whatever",
+        "description": "hiiiii",
+        "isCrochet": false,
+        "timerInSeconds": 222,
+        "numRows": 2,
+        "numStitches": 22,
+        "isFavorite": false
+    },
+    {
+        "id": 2,
+        "name": "winter beanie",
+        "patternLink": "url whatever",
+        "description": "hiiiii",
+        "isCrochet": false,
+        "timerInSeconds": 333,
+        "numRows": 3,
+        "numStitches": 33,
+        "isFavorite": true
+    },
+    {
+        "id": 3,
+        "name": "duck plushie",
+        "patternLink": "url whatever",
+        "description": "hiiiii",
+        "isCrochet": true,
+        "timerInSeconds": 444,
+        "numRows": 4,
+        "numStitches": 44,
+        "isFavorite": false
+    }
+]
